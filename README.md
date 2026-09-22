@@ -1,91 +1,123 @@
-# Flask Sample App with Tests
+# MSc Distributed Systems — Flask App on Docker & Kubernetes
 
-This is a simple Flask web application with unit tests. The application provides a basic REST API for managing a list of items. It serves as a starting point for learning how to create a Flask application and write tests for it.
-
-## Project Structure
-
-The project is organized as follows:
-
-- `app/`: Contains the Flask application and routes.
-- `tests/`: Houses unit tests for the application.
-- `run.py`: A script to run the Flask application.
-
-## Getting Started
-
-To get the Flask app up and running on your local machine, follow these steps:
-
-1. **Clone the Repository:**
-
-   ```bash
-   git clone <repository_url>
-   cd flask_sample_app
-   ```
-
-2. **Set Up a Virtual Environment:**
-
-   It's recommended to create a virtual environment to isolate project dependencies.
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use venv\Scripts\activate
-   ```
-
-3. **Install Dependencies:**
-
-   Install the necessary dependencies using `pip`:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the Application:**
-
-   Start the Flask application:
-
-   ```bash
-   python run.py
-   ```
-
-   The app will be available at [http://localhost:5000](http://localhost:5000).
-
-5. **Run Tests:**
-
-   To run the unit tests, execute the following command:
-
-   ```bash
-   python -m unittest discover tests
-   ```
-
-   This command will discover and run all tests in the `tests` directory.
+## Overview
+A simple Flask REST API containerised with Docker and deployed on a local Kubernetes cluster (Kind).  
+Docker Hub image: `hevia24/flask-app`
 
 ## Application Routes
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/` | Returns `Hello, Flask! v2` |
+| GET | `/health` | Health check |
+| GET | `/items` | List all items |
+| POST | `/items` | Add an item |
+| GET | `/items/<id>` | Get item by ID |
 
-The application provides the following routes:
+## Prerequisites
+- Python 3.11+
+- Docker Desktop
+- Kind
+- kubectl
 
-- `GET /`: Returns a simple greeting message.
-- `GET /items`: Returns a list of items.
-- `GET /items/{item_id}`: Returns the details of a specific item.
-- `POST /items`: Adds a new item to the list.
+## 1. Run locally
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+flask run
+```
+Test: `curl http://localhost:5000/health`
 
-## Testing
+## 2. Run with Docker
+```bash
+docker build -t flask-app:1.0.0 .
+docker run -d -p 5000:5000 flask-app:1.0.0
+```
+Or with Docker Compose:
+```bash
+docker compose up -d
+```
+Test: `curl http://localhost:5000/health`
 
-Unit tests are provided in the `tests` directory. They cover the basic functionality of the application, including route handling and response validation. You can use these tests as a reference to write your own tests or to verify the correctness of the application.
+## 3. Run on Kubernetes (Kind)
+```bash
+# Create cluster
+kind create cluster --name flask-cluster --config kind-config.yaml --image kindest/node:v1.31.0
 
-## License
+# Deploy
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/networkpolicy.yaml
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# Access
+kubectl port-forward service/flask-app 8080:80 -n flask-app
+curl http://localhost:8080/health
+```
 
-## Contribute
+## 4. Key Demonstrations
+```bash
+# Self-healing
+kubectl delete pod <pod-name> -n flask-app
+kubectl get pods -n flask-app -w
 
-Feel free to contribute to this project by opening issues or submitting pull requests. We welcome any improvements, bug fixes, or additional features.
+# Scaling
+kubectl scale deployment flask-app -n flask-app --replicas=4
 
-## Author
+# Rolling update
+kubectl set image deployment/flask-app flask-app=hevia24/flask-app:2.0.0 -n flask-app
+kubectl rollout status deployment/flask-app -n flask-app
 
-- Pan Luo
+# Rollback
+kubectl rollout undo deployment/flask-app -n flask-app
+```
 
-## Acknowledgments
+## 5. Security
+- Non-root user (UID 1000)
+- Dropped ALL capabilities
+- NetworkPolicy applied
+- Vulnerability scan: 0 Critical, 3 High (no fix available)
+- SBOM generated with Docker Scout
 
-- This project was created as a sample Flask application for educational purposes.
-- Special thanks to the Flask community for providing a fantastic web framework.
+## Project Structure
+```text
+msc-de1-distributed-systems-docker-k8s-htde1/
+|-- app/
+|   |-- __init__.py
+|   |-- routes.py
+|
+|-- k8s/
+|   |-- deployment.yaml
+|   |-- namespace.yaml
+|   |-- networkpolicy.yaml
+|   |-- service.yaml
+|   |-- optional-config-or-secret.yaml
+|
+|-- tests/
+|   |-- __init__.py
+|   |-- test_app.py
+|
+|-- security/
+|   |-- sbom.txt
+|   |-- security-scan-v1.0.1.txt
+|
+|-- evidence/
+|
+|-- Dockerfile
+|-- docker-compose.yml
+|-- kind-config.yaml
+|-- LICENSE
+|-- README.md
+|-- requirements.txt
+|-- run.py
+|-- .dockerignore
+|-- .gitignore
+```
 
-Enjoy experimenting with the Flask sample app! If you have any questions or need further assistance, please don't hesitate to reach out.
+## Docker Hub
+Image available at: https://hub.docker.com/r/hevia24/flask-app
+
+## Running Tests
+```bash
+python -m unittest discover tests
+```
