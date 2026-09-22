@@ -1,8 +1,13 @@
 # MSc Distributed Systems — Flask App on Docker & Kubernetes
 
-## Overview
-A simple Flask REST API containerised with Docker and deployed on a local Kubernetes cluster (Kind).  
-Docker Hub image: `hevia24/flask-app`
+## Project Objective
+This project containerizes the UBC Flask Sample App — a minimal Python REST API — 
+using Docker and deploys it on a local Kubernetes cluster (Kind) with security 
+best practices, health checks, vulnerability scanning and distributed systems 
+demonstrations (self-healing, scaling, rolling update, rollback).
+
+**Original starter application:** https://github.com/ubc/flask-sample-app
+
 
 ## Application Routes
 | Method | Route | Description |
